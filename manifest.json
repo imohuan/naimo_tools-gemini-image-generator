@@ -1,0 +1,22 @@
+{
+  "$schema": "./schema.json",
+  "id": "gemini-image-generator",
+  "name": "Gemini 图片生成",
+  "version": "1.0.1",
+  "author": "",
+  "icon": "./ico.png",
+  "description": "使用 Gemini 3 Pro Image Preview 模型生成图片，支持宽高比和清晰度控制",
+  "category": "ai",
+  "enabled": true,
+  "main": "./index.html",
+  "preload": "./preload.js",
+  "feature": [
+    {
+      "path": "gemini-image",
+      "name": "Gemini 图片生成",
+      "icon": "./ico.png",
+      "description": "使用 Gemini 生成图片",
+      "type": "text"
+    }
+  ]
+}
