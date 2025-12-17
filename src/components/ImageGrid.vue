@@ -126,7 +126,7 @@
     <!-- 画布内容区域 -->
     <div
       ref="containerRef"
-      class="flex-1 min-h-0 flex flex-col image-grid-container relative"
+      class="flex-1 min-h-0 flex flex-col image-grid-container relative outline-none"
       @drop.prevent="handleDrop"
       @dragover.prevent="handleDragOver"
       @dragenter.prevent="handleDragEnter"
@@ -134,6 +134,14 @@
       :class="isDragging ? 'bg-indigo-50' : ''"
       tabindex="0"
     >
+      <input
+        ref="uploadInputRef"
+        type="file"
+        accept="image/*"
+        multiple
+        class="hidden"
+        @change="onFileInputChange"
+      />
       <!-- 单张图片大图展示（画布模式） -->
       <div v-if="canvasMode && selectedImage" class="flex-1 min-h-0 p-6 pt-0">
         <ZoomableCanvas
@@ -214,7 +222,7 @@
                   width: region.width + 'px',
                   height: region.height + 'px',
                 }"
-                @click.stop="handleRegionClick(index)"
+                @click_disable.stop="handleRegionClick(index)"
                 @mouseenter="handleRegionHover(index, true)"
                 @mouseleave="handleRegionHover(index, false)"
               >
@@ -265,10 +273,40 @@
         class="flex-1 min-h-0 overflow-auto p-6 pt-0"
       >
         <div :class="gridClass">
+          <!-- 上传图片卡片 -->
+          <div
+            class="relative flex items-center justify-center rounded-xl border-2 border-dashed border-indigo-200 bg-white/70 shadow-sm hover:shadow-md transition-all duration-200 aspect-video cursor-pointer hover:border-indigo-400 group"
+            @click.stop="triggerUpload"
+          >
+            <div class="text-center space-y-2">
+              <div
+                class="mx-auto w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-200"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" x2="12" y1="3" y2="15" />
+                </svg>
+              </div>
+              <div class="text-sm font-medium text-slate-700">上传图片</div>
+              <div class="text-xs text-slate-400">点击选择或拖拽、粘贴</div>
+            </div>
+          </div>
           <div
             v-for="(image, index) in images"
             :key="image.id"
             @click.stop="$emit('select-image', image)"
+            @dblclick.stop="handleItemDoubleClick(image)"
             :class="[
               'relative group cursor-pointer rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border-2 aspect-video',
               selectedImage?.id === image.id
@@ -276,6 +314,12 @@
                 : 'border-transparent hover:border-indigo-200',
             ]"
           >
+            <div
+              v-if="selectedImage?.id === image.id"
+              class="absolute top-2 left-2 z-10 px-2 py-1 text-[11px] font-semibold bg-indigo-600 text-white rounded-md shadow-sm"
+            >
+              已选中
+            </div>
             <div
               class="absolute inset-0 bg-slate-200 animate-pulse"
               v-if="!image.imageBase64"
@@ -325,17 +369,55 @@
         class="flex-1 min-h-0 overflow-auto p-6 pt-0"
       >
         <div class="space-y-3">
+          <!-- 上传图片条目 -->
+          <div
+            class="relative flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 bg-white hover:border-indigo-200 hover:shadow-sm"
+            @click.stop="triggerUpload"
+          >
+            <div
+              class="w-24 h-16 rounded-lg border-2 border-dashed border-indigo-200 flex items-center justify-center bg-indigo-50"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-indigo-500"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" x2="12" y1="3" y2="15" />
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-slate-900">上传图片</div>
+              <div class="text-xs text-slate-500 mt-1">点击选择或拖拽、粘贴图片</div>
+            </div>
+            <div class="text-xs text-indigo-500 font-medium flex-shrink-0">新增</div>
+          </div>
           <div
             v-for="(image, index) in images"
             :key="image.id"
             @click.stop="$emit('select-image', image)"
+            @dblclick.stop="handleItemDoubleClick(image)"
             :class="[
-              'flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 group',
+              'relative flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 group',
               selectedImage?.id === image.id
                 ? 'bg-indigo-50 border-indigo-500 shadow-md'
                 : 'bg-white border-transparent hover:border-indigo-200 hover:shadow-sm',
             ]"
           >
+            <div
+              v-if="selectedImage?.id === image.id"
+              class="absolute top-2 left-2 px-2 py-0.5 text-[11px] font-semibold bg-indigo-600 text-white rounded-md shadow-sm"
+            >
+              已选中
+            </div>
             <div class="w-24 h-16 rounded-lg overflow-hidden flex-shrink-0">
               <img
                 v-if="image.imageBase64"
@@ -485,9 +567,14 @@ const hoveredRegionIndex = ref<number | null>(null);
 const isDragging = ref(false);
 const dragCounter = ref(0);
 const containerRef = ref<HTMLElement | null>(null);
+const uploadInputRef = ref<HTMLInputElement | null>(null);
 
 const gridClass = computed(() => {
-  return props.layout === "2x2" ? "grid grid-cols-2 gap-4" : "grid grid-cols-3 gap-4";
+  // 基础：自适应列数，卡片最小宽度 300px，自动换行
+  const baseClass = "grid gap-4 grid-cols-[repeat(auto-fit,minmax(300px,1fr))]";
+  // 根据分镜布局限制最大列数：2x2 -> 最多 2 列，3x3 -> 最多 3 列
+  const maxColsClass = props.layout === "2x2" ? "xl:grid-cols-2" : "xl:grid-cols-3";
+  return `${baseClass} ${maxColsClass}`;
 });
 
 // 计算分割线位置
@@ -744,6 +831,27 @@ async function handleFiles(files: File[]) {
       console.error("处理图片文件失败:", error);
     }
   }
+}
+
+// 触发文件选择
+function triggerUpload() {
+  uploadInputRef.value?.click();
+}
+
+// 处理选择文件
+function onFileInputChange(e: Event) {
+  const target = e.target as HTMLInputElement;
+  const files = target.files ? Array.from(target.files) : [];
+  if (files.length > 0) {
+    handleFiles(files);
+  }
+  target.value = "";
+}
+
+// 双击选中并进入画布
+function handleItemDoubleClick(image: GeneratedImage) {
+  emit("select-image", image);
+  emit("enter-canvas");
 }
 
 // 将文件转换为 base64

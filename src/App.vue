@@ -2,8 +2,9 @@
   <div class="w-full h-screen bg-slate-50 flex flex-col">
     <!-- 顶部导航栏 -->
     <header
-      class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm"
+      class="h-14 bg-white border-b border-slate-200 flex items-center px-6 shadow-sm"
     >
+      <!-- 左侧：标题 + Tab -->
       <div class="flex items-center gap-4">
         <!-- 左侧图标 + 标题 -->
         <div class="flex items-center gap-3">
@@ -84,6 +85,89 @@
           </button>
         </nav>
       </div>
+
+      <!-- 中间：项目选择器（居中对齐） -->
+      <div class="flex-1 flex justify-center">
+        <div
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-slate-50 border border-slate-200 shadow-sm"
+        >
+          <span class="text-xs font-medium text-slate-500 tracking-wide"> 项目 </span>
+          <select
+            class="px-3 py-1.5 text-xs rounded-md focus:outline-none focus:border-transparent text-slate-700 max-w-[260px]"
+            :value="currentProject?.id || ''"
+            @change="handleSwitchProject(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="project in projects" :key="project.id" :value="project.id">
+              {{ project.name }}
+            </option>
+          </select>
+          <button
+            class="p-1.5 rounded-md text-slate-500 hover:text-indigo-600 hover:bg-white transition-colors"
+            title="新建项目"
+            @click="openCreateProjectModal"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
+            </svg>
+          </button>
+          <button
+            class="p-1.5 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="重命名当前项目"
+            :disabled="!currentProject"
+            @click="currentProject && openEditProjectModal(currentProject.id)"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z" />
+            </svg>
+          </button>
+          <button
+            class="p-1.5 rounded-full text-slate-400 hover:text-red-600 hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="删除当前项目"
+            :disabled="!currentProject || projects.length <= 1"
+            @click="currentProject && handleDeleteProject(currentProject.id)"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 6h18" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 右侧：操作按钮 -->
       <div class="flex items-center gap-3">
         <button
           v-if="mainTab === 'storyboard'"
@@ -356,40 +440,68 @@
                   为每个分镜编写或调整提示词，可单独刷新，也可以在顶部一键生成。
                 </p>
               </div>
-              <button
-                @click="showStoryboardImages = !showStoryboardImages"
-                :class="[
-                  'px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2',
-                  showStoryboardImages
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
-                ]"
-                title="显示/隐藏分镜图片"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+              <div class="flex items-center gap-2">
+                <button
+                  @click="handleRandomizeStoryboardModes"
+                  class="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all flex items-center gap-2"
+                  title="随机为所有分镜选择镜头模式，并清空自定义提示词"
                 >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <path d="M21 15l-5-5L5 21" />
-                </svg>
-                {{ showStoryboardImages ? "隐藏图片" : "显示图片" }}
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="4 4 10 4 10 10" />
+                    <polyline points="20 20 14 20 14 14" />
+                    <line x1="10" y1="4" x2="4" y2="10" />
+                    <line x1="20" y1="14" x2="14" y2="20" />
+                  </svg>
+                  随机分镜模式
+                </button>
+                <button
+                  @click="handleToggleStoryboardImages"
+                  :class="[
+                    'px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2',
+                    showStoryboardImages
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+                  ]"
+                  title="显示/隐藏分镜图片"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                  {{ showStoryboardImages ? "隐藏图片" : "显示图片" }}
+                </button>
+              </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4">
+            <!-- 自适应分镜网格，自动换行并为每个卡片设置最小宽度；在大屏时最多 3 列 -->
+            <div
+              class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(300px,1fr))] xl:grid-cols-3"
+            >
               <div
                 v-for="item in storyboardItems"
                 :key="item.id"
-                class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow"
+                class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow min-w-[260px]"
               >
                 <!-- 卡片头部：序号 + 分镜模式选择 + 刷新按钮 -->
                 <div class="flex items-center gap-2">
@@ -552,6 +664,15 @@
       </button>
     </div>
 
+    <!-- 项目对话框 -->
+    <ProjectModal
+      :show="showProjectModal"
+      :initial-name="projectNameInput"
+      :editing-id="editingProjectId"
+      @close="showProjectModal = false"
+      @save="(name: string) => { projectNameInput = name; handleSaveProject(); }"
+    />
+
     <!-- 设置对话框 -->
     <SettingsModal
       :show="showSettings"
@@ -563,13 +684,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import { ref, computed, watch } from "vue";
+import { storeToRefs } from "pinia";
 import SettingsModal from "./components/SettingsModal.vue";
 import ImageGrid from "./components/ImageGrid.vue";
 import InspectorPanel from "./components/InspectorPanel.vue";
 import AssetLibrary from "./components/AssetLibrary.vue";
-import type { GeminiConfig, GenerationSettings, GeneratedImage, Asset } from "./types";
-import { loadConfig, saveConfig } from "./utils/config";
+import ProjectModal from "./components/ProjectModal.vue";
+import type { GeminiConfig, GeneratedImage, Asset } from "./types";
 import {
   generateImage,
   analyzeImage,
@@ -577,54 +699,47 @@ import {
   generateBatchStoryboardPrompts,
   type BatchStoryboardPromptResult,
 } from "./services/geminiService";
-import finalPromptTemplate from "./prompts/final-prompt.md?raw";
 import { splitImage } from "./utils/imageSplitter";
+import {
+  useAppStore,
+  type StoryboardItem,
+  type StoryboardMode,
+} from "./stores/appStore";
 
-// 状态
-const config = ref<GeminiConfig>(loadConfig());
-const settings = reactive<GenerationSettings>({
-  prompt: "",
-  aspectRatio: config.value.aspectRatio || "16:9",
-  resolution: "1024x1024", // 保留用于兼容性，但优先使用 config.imageSize
-  storyboardLayout: (config.value.storyboardLayout as "2x2" | "3x3") || "3x3",
-  directorInstructions: [],
-});
-const generatedImages = ref<GeneratedImage[]>([]);
-const selectedImage = ref<GeneratedImage | null>(null);
-const viewMode = ref<"grid" | "list">("grid");
-const canvasMode = ref(false);
-const mainTab = ref<"storyboard" | "images">("storyboard");
-const isGenerating = ref(false);
-const error = ref<string | null>(null);
-const showSettings = ref(false);
-const referenceImages = ref<Asset[]>([]);
+// Pinia 应用状态
+const appStore = useAppStore();
+const {
+  config,
+  projects,
+  currentProject,
+  mainTab,
+  viewMode,
+  canvasMode,
+  isGenerating,
+  isAnalyzing,
+  error,
+  showSettings,
+  analysisTab,
+  selectedImage,
+  projectSettings,
+  projectReferenceImages,
+  projectAnalysisResult,
+  projectStoryboardItems,
+  projectGeneratedImages,
+  projectShowStoryboardImages,
+  projectSelectedImageId,
+  prompts,
+} = storeToRefs(appStore);
 
-const isAnalyzing = ref(false);
-const analysisTab = ref<"analyze" | "result">("analyze");
-const analysisResult = ref("");
-const showStoryboardImages = ref(false); // 是否显示分镜图片
+// 将 Pinia 中的项目级数据映射为本地引用，方便在模板和逻辑中使用
+const settings = projectSettings;
+const referenceImages = projectReferenceImages;
+const analysisResult = projectAnalysisResult;
+const storyboardItems = projectStoryboardItems;
+const generatedImages = projectGeneratedImages;
+const showStoryboardImages = projectShowStoryboardImages;
 
-// 分镜编辑相关
-type StoryboardMode =
-  | "高角度 / 略俯"
-  | "过肩镜头"
-  | "七分身 (Knees up)"
-  | "特写 (Eyes / Details)"
-  | "荷兰角 (倾斜)"
-  | "剪影"
-  | "中景"
-  | "大全景"
-  | "自定义";
-
-interface StoryboardItem {
-  id: string;
-  index: number;
-  mode: StoryboardMode;
-  prompt: string;
-  imageBase64?: string; // 分割后的图片 base64
-  isLoading?: boolean; // 是否正在加载
-}
-
+// 分镜模式列表（与 store 中保持一致）
 const storyboardModes: StoryboardMode[] = [
   "高角度 / 略俯",
   "过肩镜头",
@@ -634,31 +749,19 @@ const storyboardModes: StoryboardMode[] = [
   "剪影",
   "中景",
   "大全景",
-  "自定义",
+  "随机",
 ];
 
-// 根据布局初始化分镜项
-function initStoryboardItems(layout: "2x2" | "3x3"): StoryboardItem[] {
-  const count = layout === "2x2" ? 4 : 9;
-  return Array.from({ length: count }).map((_, index) => ({
-    id:
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `panel-${index + 1}-${Math.random().toString(36).substr(2, 5)}`,
-    index: index + 1,
-    mode: storyboardModes[index] || "自定义",
-    prompt: "",
-    isLoading: false,
-  }));
-}
-
-const storyboardItems = ref<StoryboardItem[]>(
-  initStoryboardItems(settings.storyboardLayout)
-);
+// 项目管理相关状态
+const showProjectModal = ref(false);
+const projectNameInput = ref("");
+const editingProjectId = ref<string | null>(null);
 
 const finalPromptPreview = computed(() => {
   // 获取有效的分镜项
-  const validItems = storyboardItems.value.filter((item) => item.prompt.trim());
+  const validItems = storyboardItems.value.filter(
+    (item: StoryboardItem) => item.prompt.trim()
+  );
 
   if (validItems.length === 0) {
     return "";
@@ -684,7 +787,7 @@ const finalPromptPreview = computed(() => {
   }
 
   // 获取布局信息
-  const layout = settings.storyboardLayout;
+  const layout = settings.value.storyboardLayout;
   const panelCount = validItems.length;
 
   // 转换分辨率格式 (1K -> 1K, 2K -> 2K, 4K -> 4K, 8K -> 8K)
@@ -697,18 +800,18 @@ const finalPromptPreview = computed(() => {
   const resolution = resolutionMap[config.value.imageSize || "1K"] || "1K";
 
   // 获取画幅
-  const aspectRatio = settings.aspectRatio || "16:9";
+  const aspectRatio = settings.value.aspectRatio || "16:9";
 
   // 格式化镜头描述：镜头 01: 镜头 02: ...
   const panelDescriptions = validItems
-    .map((item) => {
+    .map((item: StoryboardItem) => {
       const indexStr = item.index.toString().padStart(2, "0");
       return `镜头 ${indexStr}: ${item.prompt.trim()}`;
     })
     .join("\n\n");
 
-  // 使用模板格式化最终提示词
-  return finalPromptTemplate
+  // 使用模板格式化最终提示词（从 Pinia 中读取当前模板）
+  return prompts.value.finalPrompt
     .replace("{{analysisSummary}}", analysisSummary)
     .replace("{{layout}}", layout)
     .replace("{{panelCount}}", panelCount.toString())
@@ -718,22 +821,32 @@ const finalPromptPreview = computed(() => {
     .trim();
 });
 
+// 随机为所有分镜选择镜头模式：将下拉框统一设置为“随机”并清空提示词
+function handleRandomizeStoryboardModes() {
+  storyboardItems.value.forEach((item: StoryboardItem) => {
+    item.mode = "随机";
+    // 清空之前的自定义提示词内容
+    item.prompt = "";
+  });
+}
+
 // 处理配置保存
 function handleSaveConfig(newConfig: GeminiConfig) {
-  config.value = newConfig;
-  saveConfig(newConfig);
+  appStore.updateConfig(newConfig);
 
   // 更新设置以反映新的配置
   if (newConfig.aspectRatio) {
-    settings.aspectRatio = newConfig.aspectRatio;
+    settings.value.aspectRatio = newConfig.aspectRatio;
   }
   if (newConfig.storyboardLayout) {
-    const oldLayout = settings.storyboardLayout;
-    settings.storyboardLayout = newConfig.storyboardLayout;
+    const oldLayout = settings.value.storyboardLayout;
+    settings.value.storyboardLayout = newConfig.storyboardLayout;
 
     // 如果布局改变，重新初始化分镜项（会清除旧的图片数据）
     if (oldLayout !== newConfig.storyboardLayout) {
-      storyboardItems.value = initStoryboardItems(newConfig.storyboardLayout);
+      storyboardItems.value = appStore.createDefaultStoryboardItems(
+        newConfig.storyboardLayout
+      );
       // 布局改变后，清除生成的图片（因为分割方式已改变）
       generatedImages.value = [];
       selectedImage.value = null;
@@ -755,7 +868,7 @@ async function handleAnalyzeReference() {
   console.group("📊 参考图分析");
   console.log("输入参数:", {
     参考图数量: referenceImages.value.length,
-    参考图信息: referenceImages.value.map((img) => ({
+    参考图信息: referenceImages.value.map((img: Asset) => ({
       id: img.id,
       name: img.name,
       size: img.size,
@@ -816,8 +929,8 @@ async function handleGenerateStoryboardPrompts() {
   console.group("🎬 批量生成分镜提示词");
   console.log("输入参数:", {
     分镜项数量: storyboardItems.value.length,
-    布局: settings.storyboardLayout,
-    分镜项列表: storyboardItems.value.map((item) => ({
+    布局: settings.value.storyboardLayout,
+    分镜项列表: storyboardItems.value.map((item: StoryboardItem) => ({
       index: item.index,
       mode: item.mode,
       currentPrompt: item.prompt ? `${item.prompt.substring(0, 50)}...` : "空",
@@ -828,7 +941,7 @@ async function handleGenerateStoryboardPrompts() {
 
   try {
     // 设置所有分镜项为加载状态
-    storyboardItems.value.forEach((item) => {
+    storyboardItems.value.forEach((item: StoryboardItem) => {
       item.isLoading = true;
     });
 
@@ -874,7 +987,7 @@ async function handleGenerateStoryboardPrompts() {
     const result: BatchStoryboardPromptResult = await generateBatchStoryboardPrompts(
       {
         imageAnalysis,
-        storyboardItems: storyboardItems.value.map((item) => ({
+        storyboardItems: storyboardItems.value.map((item: StoryboardItem) => ({
           index: item.index,
           mode: item.mode,
         })),
@@ -887,9 +1000,9 @@ async function handleGenerateStoryboardPrompts() {
 
     // 更新分镜项
     for (const promptItem of result.prompts) {
-      const storyboardItem = storyboardItems.value.find(
-        (item) => item.index === promptItem.index
-      );
+      const storyboardItem = storyboardItems.value.find((item: StoryboardItem) => {
+        return item.index === promptItem.index;
+      });
       if (storyboardItem) {
         storyboardItem.prompt = promptItem.prompt;
         storyboardItem.isLoading = false;
@@ -924,7 +1037,7 @@ async function handleGenerateStoryboardPrompts() {
     console.log(`⏱️ 耗时: ${duration} 秒`);
     error.value = err.message || "生成分镜提示词失败，请检查配置和网络连接";
     // 发生错误时，清除所有项的加载状态
-    storyboardItems.value.forEach((item) => {
+    storyboardItems.value.forEach((item: StoryboardItem) => {
       item.isLoading = false;
     });
   } finally {
@@ -1062,8 +1175,8 @@ async function handleGenerate() {
     提示词长度: promptText.length,
     提示词预览: promptText.substring(0, 300) + (promptText.length > 300 ? "..." : ""),
     完整提示词: promptText,
-    画幅比例: settings.aspectRatio,
-    布局: settings.storyboardLayout,
+    画幅比例: settings.value.aspectRatio,
+    布局: settings.value.storyboardLayout,
     分辨率: config.value.imageSize,
     参考图数量: referenceImages.value.length,
     配置: {
@@ -1078,7 +1191,7 @@ async function handleGenerate() {
     const generateStartTime = performance.now();
     const imageBase64 = await generateImage(
       {
-        ...settings,
+        ...settings.value,
         prompt: promptText,
         referenceImages: referenceImages.value,
       },
@@ -1098,11 +1211,12 @@ async function handleGenerate() {
       imageBase64,
       timestamp: Date.now(),
       prompt: promptText,
-      aspectRatio: settings.aspectRatio,
+      aspectRatio: settings.value.aspectRatio,
     };
 
     generatedImages.value = [image];
     selectedImage.value = image;
+    projectSelectedImageId.value = image.id;
     // 生成图片后自动进入画布模式（只有一张图片时）
     canvasMode.value = true;
 
@@ -1113,40 +1227,7 @@ async function handleGenerate() {
     });
 
     // 分割图片并分配到对应的分镜项
-    try {
-      console.log("✂️ 开始分割图片...");
-      const splitStartTime = performance.now();
-      const slices = await splitImage(imageBase64, settings.storyboardLayout);
-      const splitEndTime = performance.now();
-      const splitDuration = ((splitEndTime - splitStartTime) / 1000).toFixed(2);
-      console.log(`✅ 图片分割完成，耗时: ${splitDuration} 秒`);
-
-      // 按照分镜项的 index 顺序分配图片
-      slices.forEach((sliceBase64, sliceIndex) => {
-        const itemIndex = sliceIndex + 1; // sliceIndex 从 0 开始，item.index 从 1 开始
-        const storyboardItem = storyboardItems.value.find(
-          (item) => item.index === itemIndex
-        );
-        if (storyboardItem) {
-          storyboardItem.imageBase64 = sliceBase64;
-        }
-      });
-
-      console.log("分割结果:", {
-        分割数量: slices.length,
-        每个分片大小: slices.map(
-          (slice) => `${(slice.length * 3) / 4 / 1024} KB (base64)`
-        ),
-        已分配到分镜项: slices.length,
-      });
-    } catch (err: any) {
-      console.error("❌ 图片分割失败:", err);
-      console.log("错误详情:", {
-        错误消息: err.message,
-        错误堆栈: err.stack,
-      });
-      error.value = "图片分割失败: " + (err.message || "未知错误");
-    }
+    await applyStoryboardImageSlices(image);
 
     const endTime = performance.now();
     const totalDuration = ((endTime - startTime) / 1000).toFixed(2);
@@ -1168,6 +1249,63 @@ async function handleGenerate() {
   }
 }
 
+// 根据给定图片分割并同步到分镜项
+async function applyStoryboardImageSlices(image: GeneratedImage) {
+  if (!image || !image.imageBase64) return;
+
+    try {
+      console.log("✂️ 开始分割图片...");
+      const splitStartTime = performance.now();
+    const slices = await splitImage(image.imageBase64, settings.value.storyboardLayout);
+      const splitEndTime = performance.now();
+      const splitDuration = ((splitEndTime - splitStartTime) / 1000).toFixed(2);
+      console.log(`✅ 图片分割完成，耗时: ${splitDuration} 秒`);
+
+    // 先清空所有分镜项的图片
+    storyboardItems.value.forEach((item: StoryboardItem) => {
+      item.imageBase64 = undefined;
+    });
+
+      // 按照分镜项的 index 顺序分配图片
+      slices.forEach((sliceBase64, sliceIndex) => {
+        const itemIndex = sliceIndex + 1; // sliceIndex 从 0 开始，item.index 从 1 开始
+    const storyboardItem = storyboardItems.value.find(
+          (item: StoryboardItem) => item.index === itemIndex
+        );
+        if (storyboardItem) {
+          storyboardItem.imageBase64 = sliceBase64;
+        }
+      });
+
+      console.log("分割结果:", {
+        分割数量: slices.length,
+        每个分片大小: slices.map(
+          (slice) => `${(slice.length * 3) / 4 / 1024} KB (base64)`
+        ),
+        已分配到分镜项: slices.length,
+      });
+    } catch (err: any) {
+      console.error("❌ 图片分割失败:", err);
+      console.log("错误详情:", {
+        错误消息: err.message,
+        错误堆栈: err.stack,
+      });
+      error.value = "图片分割失败: " + (err.message || "未知错误");
+  }
+}
+
+// 获取优先选中的图片：当前选中 > 记录的 ID > 第一张
+function getPreferredImage(): GeneratedImage | null {
+  if (selectedImage.value) return selectedImage.value;
+  if (projectSelectedImageId.value) {
+    const found = generatedImages.value.find(
+      (img: GeneratedImage) => img.id === projectSelectedImageId.value
+    );
+    if (found) return found;
+  }
+  return generatedImages.value.length > 0 ? generatedImages.value[0] : null;
+}
+
 // 下载单张图片
 function handleDownloadImage(image: GeneratedImage) {
   const link = document.createElement("a");
@@ -1183,19 +1321,31 @@ async function handleBatchDownload() {
     return;
   }
 
+  // 如果只有一张，直接用单张下载
+  if (generatedImages.value.length === 1) {
+    handleDownloadImage(generatedImages.value[0]);
+    return;
+  }
+
   try {
-    // 使用 JSZip 库来创建 ZIP 文件
     let JSZip: any;
     try {
       const jszipModule = await import("jszip" as any);
       JSZip = jszipModule.default;
     } catch (e) {
-      error.value = "JSZip 库未安装，请先运行: pnpm add jszip";
+      // 降级方案：未安装 jszip 时逐张下载，避免无感失败
+      console.warn("JSZip 未安装，改为逐张下载:", e);
+      generatedImages.value.forEach((image: GeneratedImage, index: number) => {
+        const link = document.createElement("a");
+        link.href = `data:image/png;base64,${image.imageBase64}`;
+        link.download = `image_${image.panelIndex || index + 1}_${image.id.slice(0, 8)}.png`;
+        link.click();
+      });
       return;
     }
     const zip = new JSZip();
 
-    generatedImages.value.forEach((image, index) => {
+    generatedImages.value.forEach((image: GeneratedImage, index: number) => {
       const base64Data = image.imageBase64;
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
@@ -1222,21 +1372,40 @@ async function handleBatchDownload() {
   }
 }
 
+// 切换分镜图片显示状态
+async function handleToggleStoryboardImages() {
+  const nextValue = !showStoryboardImages.value;
+  showStoryboardImages.value = nextValue;
+
+  // 当从“隐藏图片”切换到“显示图片”时，使用当前选中/记录的图片进行分割
+  if (nextValue) {
+    const image = getPreferredImage();
+    if (!image) return;
+    selectedImage.value = image;
+    projectSelectedImageId.value = image.id;
+    await applyStoryboardImageSlices(image);
+  }
+}
+
 // 删除图片
 function handleDeleteImage(imageId: string) {
-  const index = generatedImages.value.findIndex((img) => img.id === imageId);
+  const index = generatedImages.value.findIndex(
+    (img: GeneratedImage) => img.id === imageId
+  );
   if (index > -1) {
     generatedImages.value.splice(index, 1);
+    // 触发持久化
+    projectGeneratedImages.value = [...generatedImages.value];
     // 如果删除的是当前选中的图片，则选中第一张或清空
     if (selectedImage.value?.id === imageId) {
       selectedImage.value =
         generatedImages.value.length > 0 ? generatedImages.value[0] : null;
+      projectSelectedImageId.value = selectedImage.value?.id || null;
       // 如果删除后没有图片了，退出画布模式
       if (generatedImages.value.length === 0) {
         canvasMode.value = false;
       }
     }
-    saveGeneratedImages();
   }
 }
 
@@ -1246,15 +1415,23 @@ function handleAddImage(image: GeneratedImage) {
   // 如果当前没有选中的图片，自动选中新添加的图片
   if (!selectedImage.value) {
     selectedImage.value = image;
+    projectSelectedImageId.value = image.id;
   }
-  saveGeneratedImages();
+  // 触发持久化（替换引用确保写入存储）
+  projectGeneratedImages.value = [...generatedImages.value];
 }
 
 // 选择图片
-function handleSelectImage(image: GeneratedImage) {
+async function handleSelectImage(image: GeneratedImage) {
   selectedImage.value = image;
+  projectSelectedImageId.value = image.id;
   // 选择图片时退出画布模式
   canvasMode.value = false;
+
+  // 如果当前处于“显示图片”状态，则同步更新分镜图片
+  if (showStoryboardImages.value) {
+    await applyStoryboardImageSlices(image);
+  }
 }
 
 // 素材库相关函数
@@ -1281,11 +1458,10 @@ function handleAddAssets(newAssets: Asset[]) {
   }
 
   referenceImages.value.push(...newAssets);
-  saveAssets();
 }
 
 function handleDeleteAsset(assetId: string) {
-  const index = referenceImages.value.findIndex((a) => a.id === assetId);
+  const index = referenceImages.value.findIndex((a: Asset) => a.id === assetId);
   if (index > -1) {
     const asset = referenceImages.value[index];
     // 释放 URL
@@ -1293,344 +1469,105 @@ function handleDeleteAsset(assetId: string) {
       URL.revokeObjectURL(asset.url);
     }
     referenceImages.value.splice(index, 1);
-    saveAssets();
   }
 }
-
-function saveAssets() {
-  try {
-    // 限制保存的图片数量，避免超出 localStorage 配额
-    const MAX_ASSETS = 10;
-    const assetsToSave = referenceImages.value
-      .slice(-MAX_ASSETS) // 只保存最近 10 张图片
-      .map((asset) => ({
-        id: asset.id,
-        name: asset.name,
-        base64: asset.base64,
-        timestamp: asset.timestamp,
-        size: asset.size,
-        type: asset.type,
-      }));
-
-    const dataToSave = JSON.stringify(assetsToSave);
-
-    // 检查数据大小（localStorage 通常限制为 5-10MB）
-    const sizeInBytes = new Blob([dataToSave]).size;
-    const sizeInMB = sizeInBytes / (1024 * 1024);
-
-    if (sizeInMB > 4) {
-      // 如果数据太大，只保存更少的图片
-      const reducedAssets = referenceImages.value
-        .slice(-Math.max(1, Math.floor(MAX_ASSETS / 2)))
-        .map((asset) => ({
-          id: asset.id,
-          name: asset.name,
-          base64: asset.base64,
-          timestamp: asset.timestamp,
-          size: asset.size,
-          type: asset.type,
-        }));
-
-      localStorage.setItem("gemini-reference-images", JSON.stringify(reducedAssets));
-      console.warn(`数据过大 (${sizeInMB.toFixed(2)}MB)，已减少保存的图片数量`);
-    } else {
-      localStorage.setItem("gemini-reference-images", dataToSave);
-    }
-  } catch (error: any) {
-    console.error("保存参考图失败:", error);
-    if (error.name === "QuotaExceededError") {
-      // 如果仍然超出配额，尝试只保存最近 5 张图片
-      try {
-        const reducedAssets = referenceImages.value.slice(-5).map((asset) => ({
-          id: asset.id,
-          name: asset.name,
-          base64: asset.base64,
-          timestamp: asset.timestamp,
-          size: asset.size,
-          type: asset.type,
-        }));
-        localStorage.setItem("gemini-reference-images", JSON.stringify(reducedAssets));
-        error.value = "存储空间不足，已自动减少保存的图片数量（仅保留最近 5 张）";
-      } catch (e) {
-        error.value = "存储空间不足，无法保存参考图。请删除一些图片后重试。";
-      }
-    }
-  }
-}
-
-function loadAssets() {
-  try {
-    const saved = localStorage.getItem("gemini-reference-images");
-    if (saved) {
-      const assetsData = JSON.parse(saved);
-      referenceImages.value = assetsData.map((data: any) => ({
-        ...data,
-        // 从 base64 恢复 URL
-        url: data.base64 ? `data:${data.type};base64,${data.base64}` : "",
-      }));
-    }
-  } catch (error) {
-    console.error("加载参考图失败:", error);
-  }
-}
-
-// 缓存分析结果
-function saveAnalysisResult() {
-  try {
-    if (analysisResult.value) {
-      localStorage.setItem("gemini-analysis-result", analysisResult.value);
-    }
-  } catch (error: any) {
-    console.error("保存分析结果失败:", error);
-    if (error.name === "QuotaExceededError") {
-      error.value = "存储空间不足，无法保存分析结果";
-    }
-  }
-}
-
-function loadAnalysisResult() {
-  try {
-    const saved = localStorage.getItem("gemini-analysis-result");
-    if (saved) {
-      analysisResult.value = saved;
-    }
-  } catch (error) {
-    console.error("加载分析结果失败:", error);
-  }
-}
-
-// 缓存分镜网格数据
-function saveStoryboardItems() {
-  try {
-    const dataToSave = JSON.stringify(storyboardItems.value);
-    localStorage.setItem("gemini-storyboard-items", dataToSave);
-  } catch (error: any) {
-    console.error("保存分镜数据失败:", error);
-    if (error.name === "QuotaExceededError") {
-      error.value = "存储空间不足，无法保存分镜数据";
-    }
-  }
-}
-
-function loadStoryboardItems() {
-  try {
-    const saved = localStorage.getItem("gemini-storyboard-items");
-    if (saved) {
-      const items = JSON.parse(saved);
-      // 验证数据格式，确保与当前布局匹配
-      if (Array.isArray(items) && items.length > 0) {
-        const expectedCount = settings.storyboardLayout === "2x2" ? 4 : 9;
-        // 如果数量匹配，则加载；否则使用默认初始化
-        if (items.length === expectedCount) {
-          storyboardItems.value = items;
-        } else {
-          // 布局改变了，重新初始化
-          storyboardItems.value = initStoryboardItems(settings.storyboardLayout);
-        }
-      }
-    }
-  } catch (error) {
-    console.error("加载分镜数据失败:", error);
-  }
-}
-
-// 加载显示图片的偏好设置
-function loadShowStoryboardImages() {
-  try {
-    const saved = localStorage.getItem("gemini-show-storyboard-images");
-    if (saved !== null) {
-      showStoryboardImages.value = saved === "true";
-    }
-  } catch (error) {
-    console.error("加载显示图片设置失败:", error);
-  }
-}
-
-// 保存显示图片的偏好设置
-function saveShowStoryboardImages() {
-  try {
-    localStorage.setItem(
-      "gemini-show-storyboard-images",
-      showStoryboardImages.value.toString()
-    );
-  } catch (error) {
-    console.error("保存显示图片设置失败:", error);
-  }
-}
-
-// 缓存生成的图片
-function saveGeneratedImages() {
-  try {
-    // 限制保存的图片数量，避免超出存储配额
-    const MAX_IMAGES = 5;
-    const imagesToSave = generatedImages.value
-      .slice(-MAX_IMAGES) // 只保存最近 5 张图片
-      .map((image) => ({
-        id: image.id,
-        imageBase64: image.imageBase64,
-        timestamp: image.timestamp,
-        prompt: image.prompt,
-        aspectRatio: image.aspectRatio,
-        panelIndex: image.panelIndex,
-      }));
-
-    const dataToSave = JSON.stringify(imagesToSave);
-
-    // 检查数据大小
-    const sizeInBytes = new Blob([dataToSave]).size;
-    const sizeInMB = sizeInBytes / (1024 * 1024);
-
-    if (sizeInMB > 4) {
-      // 如果数据太大，只保存更少的图片
-      const reducedImages = generatedImages.value
-        .slice(-Math.max(1, Math.floor(MAX_IMAGES / 2)))
-        .map((image) => ({
-          id: image.id,
-          imageBase64: image.imageBase64,
-          timestamp: image.timestamp,
-          prompt: image.prompt,
-          aspectRatio: image.aspectRatio,
-          panelIndex: image.panelIndex,
-        }));
-
-      localStorage.setItem("gemini-generated-images", JSON.stringify(reducedImages));
-      console.warn(`图片数据过大 (${sizeInMB.toFixed(2)}MB)，已减少保存的图片数量`);
-    } else {
-      localStorage.setItem("gemini-generated-images", dataToSave);
-    }
-  } catch (error: any) {
-    console.error("保存生成的图片失败:", error);
-    if (error.name === "QuotaExceededError") {
-      // 如果仍然超出配额，尝试只保存最近 1 张图片
-      try {
-        if (generatedImages.value.length > 0) {
-          const lastImage = generatedImages.value[generatedImages.value.length - 1];
-          const singleImage = [
-            {
-              id: lastImage.id,
-              imageBase64: lastImage.imageBase64,
-              timestamp: lastImage.timestamp,
-              prompt: lastImage.prompt,
-              aspectRatio: lastImage.aspectRatio,
-              panelIndex: lastImage.panelIndex,
-            },
-          ];
-          localStorage.setItem("gemini-generated-images", JSON.stringify(singleImage));
-          error.value = "存储空间不足，已自动减少保存的图片数量（仅保留最近 1 张）";
-        }
-      } catch (e) {
-        error.value = "存储空间不足，无法保存生成的图片。请删除一些图片后重试。";
-      }
-    }
-  }
-}
-
-async function loadGeneratedImages() {
-  try {
-    const saved = localStorage.getItem("gemini-generated-images");
-    if (saved) {
-      const imagesData = JSON.parse(saved);
-      if (Array.isArray(imagesData) && imagesData.length > 0) {
-        generatedImages.value = imagesData;
-        // 恢复后自动选中第一张图片（但不自动进入画布模式）
-        if (generatedImages.value.length > 0) {
-          selectedImage.value = generatedImages.value[0];
-          canvasMode.value = false; // 默认显示网格布局
-        }
-
-        // 检查所有分镜项是否都有图片数据
-        const expectedCount =
-          settings.storyboardLayout === "2x2" ? 4 : 9;
-        const itemsCountMatch = storyboardItems.value.length === expectedCount;
-        const allItemsHaveImages =
-          itemsCountMatch &&
-          storyboardItems.value.every(
-            (item) => item.imageBase64 && item.imageBase64.trim() !== ""
-          );
-
-        // 如果分镜项中不是所有项都有图片，但生成的图片存在，且分镜项数量匹配，则进行分割
-        if (
-          !allItemsHaveImages &&
-          generatedImages.value.length > 0 &&
-          itemsCountMatch
-        ) {
-          const firstImage = generatedImages.value[0];
-          if (firstImage.imageBase64) {
-            try {
-              const slices = await splitImage(
-                firstImage.imageBase64,
-                settings.storyboardLayout
-              );
-              // 按照分镜项的 index 顺序分配图片
-              slices.forEach((sliceBase64, sliceIndex) => {
-                const itemIndex = sliceIndex + 1; // sliceIndex 从 0 开始，item.index 从 1 开始
-                const storyboardItem = storyboardItems.value.find(
-                  (item) => item.index === itemIndex
-                );
-                if (storyboardItem) {
-                  storyboardItem.imageBase64 = sliceBase64;
-                }
-              });
-              console.log("从localStorage加载图片后，已自动分割并分配到分镜项");
-            } catch (err: any) {
-              console.error("加载后分割图片失败:", err);
-            }
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error("加载生成的图片失败:", error);
-  }
-}
-
-// 监听数据变化，自动保存缓存
-watch(
-  analysisResult,
-  () => {
-    saveAnalysisResult();
-  },
-  { deep: false }
-);
-
-watch(
-  storyboardItems,
-  () => {
-    saveStoryboardItems();
-  },
-  { deep: true }
-);
 
 watch(
   generatedImages,
-  (newImages) => {
-    // 如果图片列表不为空且当前没有选中的图片，自动选中第一张
+  (newImages: GeneratedImage[]) => {
+    // 如果图片列表不为空且当前没有选中的图片，优先记录的 ID，否则第一张
     if (newImages.length > 0 && !selectedImage.value) {
-      selectedImage.value = newImages[0];
+      const byId = projectSelectedImageId.value
+        ? newImages.find((img) => img.id === projectSelectedImageId.value)
+        : null;
+      const target = byId || newImages[0];
+      selectedImage.value = target;
+      projectSelectedImageId.value = target.id;
     }
     // 如果选中的图片不在列表中，重新选择第一张
-    if (selectedImage.value && !newImages.find((img) => img.id === selectedImage.value?.id)) {
-      selectedImage.value = newImages.length > 0 ? newImages[0] : null;
+    if (
+      selectedImage.value &&
+      !newImages.find((img: GeneratedImage) => img.id === selectedImage.value?.id)
+    ) {
+      const byId = projectSelectedImageId.value
+        ? newImages.find((img) => img.id === projectSelectedImageId.value)
+        : null;
+      const fallback = byId || (newImages.length > 0 ? newImages[0] : null);
+      selectedImage.value = fallback;
+      projectSelectedImageId.value = fallback?.id || null;
     }
-    saveGeneratedImages();
   },
   { deep: true }
 );
 
+// 初始化或切换项目后，如已有图片但未选中，优先恢复记录的 ID，否则第一张
 watch(
-  showStoryboardImages,
-  () => {
-    saveShowStoryboardImages();
+  () => generatedImages.value,
+  (imgs: GeneratedImage[]) => {
+    if (!selectedImage.value && imgs.length > 0) {
+      const byId = projectSelectedImageId.value
+        ? imgs.find((img) => img.id === projectSelectedImageId.value)
+        : null;
+      const target = byId || imgs[0];
+      selectedImage.value = target;
+      projectSelectedImageId.value = target.id;
+    }
+    if (imgs.length === 0) {
+      selectedImage.value = null;
+      projectSelectedImageId.value = null;
+    }
   },
-  { immediate: false }
+  { immediate: true, deep: true }
 );
 
-onMounted(() => {
-  console.log("Gemini 图片生成工具已加载");
-  loadAssets();
-  loadAnalysisResult();
-  loadStoryboardItems();
-  loadGeneratedImages();
-  loadShowStoryboardImages();
-});
+// 当选中图片变更且当前显示分镜图片时，自动同步切割结果
+watch(
+  selectedImage,
+  async (img: GeneratedImage | null) => {
+    if (showStoryboardImages.value && img) {
+      await applyStoryboardImageSlices(img);
+    }
+  }
+);
+
+// 项目管理方法
+function openCreateProjectModal() {
+  editingProjectId.value = null;
+  projectNameInput.value = "";
+  showProjectModal.value = true;
+}
+
+function openEditProjectModal(projectId: string) {
+  const project = projects.value.find((p: { id: string; name: string }) => p.id === projectId);
+  if (!project) return;
+  editingProjectId.value = projectId;
+  projectNameInput.value = project.name;
+  showProjectModal.value = true;
+}
+
+function handleSaveProject() {
+  const name = projectNameInput.value.trim();
+  if (!name) {
+    error.value = "项目名称不能为空";
+    return;
+  }
+  if (editingProjectId.value) {
+    appStore.updateProjectName(editingProjectId.value, name);
+  } else {
+    appStore.createProject(name);
+  }
+  showProjectModal.value = false;
+  projectNameInput.value = "";
+  editingProjectId.value = null;
+}
+
+function handleDeleteProject(projectId: string) {
+  if (!confirm("确定要删除该项目吗？")) return;
+  appStore.deleteProject(projectId);
+}
+
+function handleSwitchProject(projectId: string) {
+  if (projectId === currentProject.value?.id) return;
+  appStore.setCurrentProject(projectId);
+}
 </script>

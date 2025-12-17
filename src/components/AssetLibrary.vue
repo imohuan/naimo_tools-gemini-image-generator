@@ -57,7 +57,7 @@
           class="group relative rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-300 transition-all"
         >
           <div class="aspect-square bg-slate-100 flex items-center justify-center">
-            <img :src="asset.url" :alt="asset.name" class="w-full h-full object-cover" />
+            <img :src="getAssetSrc(asset)" :alt="asset.name" class="w-full h-full object-cover" />
           </div>
           <!-- 悬停时显示操作按钮 -->
           <div
@@ -144,7 +144,7 @@
           </svg>
         </button>
         <img
-          :src="previewAsset.url"
+          :src="getAssetSrc(previewAsset)"
           :alt="previewAsset.name"
           class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
         />
@@ -163,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onUnmounted } from "vue";
 import type { Asset } from "../types";
 import { compressImage } from "../utils/imageCompression";
 
@@ -210,7 +210,6 @@ async function processFiles(files: File[]) {
 
   for (const file of imageFiles) {
     try {
-      const url = URL.createObjectURL(file);
       // 压缩图片以减少存储空间
       const base64 = await compressImage(file, {
         maxWidth: 1200,
@@ -222,7 +221,8 @@ async function processFiles(files: File[]) {
       const asset: Asset = {
         id: generateId(),
         name: file.name,
-        url,
+        // 直接使用可持久化的 data URL，避免刷新后 blob URL 失效
+        url: `data:image/jpeg;base64,${base64}`,
         base64,
         timestamp: Date.now(),
         size: file.size, // 保留原始文件大小用于显示
@@ -254,10 +254,6 @@ function handleViewAsset(asset: Asset) {
 
 function handleDeleteAsset(asset: Asset) {
   if (confirm(`确定要删除 "${asset.name}" 吗？`)) {
-    // 释放 URL
-    if (asset.url.startsWith("blob:")) {
-      URL.revokeObjectURL(asset.url);
-    }
     emit("delete-asset", asset.id);
   }
 }
@@ -277,12 +273,13 @@ function formatDate(timestamp: number): string {
   });
 }
 
-// 清理 URL
-onUnmounted(() => {
-  props.assets.forEach((asset) => {
-    if (asset.url.startsWith("blob:")) {
-      URL.revokeObjectURL(asset.url);
-    }
-  });
-});
+// 统一获取可用的图片地址：优先使用 base64（可跨刷新持久化）
+function getAssetSrc(asset: Asset | null): string {
+  if (!asset) return "";
+  if (asset.base64) {
+    const mime = asset.type || "image/jpeg";
+    return `data:${mime};base64,${asset.base64}`;
+  }
+  return asset.url;
+}
 </script>
